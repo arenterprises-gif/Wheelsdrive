@@ -20,11 +20,11 @@ jobs:
           cp -r wheelsdrive/. .
           rm -rf wheelsdrive wheelsdrive.zip
 
-      - name: Commit extracted files
+      - name: Commit & Push to Repository
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add -A
-          git status
           git diff --cached --quiet && echo "Nothing to commit" || git commit -m "Extract WheelsDrive project"
-          git push
+          git pull origin main --rebase
+          git push origin main
