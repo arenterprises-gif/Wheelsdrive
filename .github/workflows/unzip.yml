@@ -1,31 +1,31 @@
-name: Unzip and Deploy
+name: Unzip WheelsDrive
 
 on:
   push:
+    branches:
+      - main
     paths:
-      - 'wheelsdrive_final.zip'
+      - 'wheelsdrive_final.zip' # सिर्फ इस ज़िप फ़ाइल के अपलोड होने पर चलेगा
+  workflow_dispatch: # बटन से मैन्युअली चलाने के लिए
 
 jobs:
-  unzip:
+  unzip-process:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout repo
+      - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Unzip project
-        run: |
-          unzip -o wheelsdrive_final.zip
-          cp -r wheelsdrive/. .
-          rm -rf wheelsdrive wheelsdrive_final.zip
+      - name: Create Target Directory
+        run: mkdir -p ./wheelsdrive_extracted
 
-      - name: Commit & Push to Repository
+      - name: Extract Zip File
+        run: unzip wheelsdrive_final.zip -d ./wheelsdrive_extracted
+
+      - name: Commit and Push Unzipped Files
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add -A
-          git diff --cached --quiet && echo "Nothing to commit" || git commit -m "Extract WheelsDrive complete - white theme + Sell Your Car + PWA"
-          git push origin main --force
+          git config --local user.email "github-actions[bot]@://github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -m "Extracted wheelsdrive_final.zip automatically" || echo "No changes to commit"
+          git push
+          
