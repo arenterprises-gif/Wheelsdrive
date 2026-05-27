@@ -9,6 +9,7 @@ on:
 jobs:
   unzip-deploy:
     runs-on: ubuntu-latest
+    environment: Production
 
     steps:
       - name: Checkout Repo
