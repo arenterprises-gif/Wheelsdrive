@@ -1,65 +1,34 @@
-name: Unzip and Deploy
+name: Extract ZIP
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
-  unzip-deploy:
+  unzip:
     runs-on: ubuntu-latest
-    environment: Production
 
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Unzip Project
-        run: unzip WheelsDrive_Final.zip -d app
+      - name: Remove old extracted folder
+        run: rm -rf extracted
 
-      - name: Show Extracted Files
-        run: ls -R app
+      - name: Extract ZIP
+        run: unzip WheelsDrive_Final.zip -d extracted
 
-      - name: Move Project Files
+      - name: Show files
+        run: ls -R extracted
+
+      - name: Commit extracted files
         run: |
-          find app -mindepth 2 -maxdepth 2 -exec mv {} . \;
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
-      - name: Remove Old Vercel Config
-        run: |
-          rm -rf .vercel
-          rm -f vercel.json
+          git add extracted
+          git commit -m "Auto extract zip" || echo "No changes"
 
-      - name: Verify Files
-        run: ls
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Build Project
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Pull Vercel Environment
-        run: |
-          npx vercel pull --yes --environment=production --token "${{ secrets.VERCEL_TOKEN }}"
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy to Vercel
-        run: |
-          npx vercel deploy . --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          git push
