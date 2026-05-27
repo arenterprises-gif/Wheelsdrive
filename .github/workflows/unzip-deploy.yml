@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   unzip-deploy:
@@ -21,8 +22,10 @@ jobs:
 
       - name: Move Project Files
         run: |
-          shopt -s dotglob
-          mv app/*/* .
+          find app -mindepth 2 -maxdepth 2 -exec mv {} . \;
+
+      - name: Verify Files
+        run: ls
 
       - name: Install Node.js
         uses: actions/setup-node@v4
