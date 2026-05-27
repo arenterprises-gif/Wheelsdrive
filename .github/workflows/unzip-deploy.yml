@@ -14,13 +14,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Unzip Project
-        run: |
-          unzip WheelsDrive_Final.zip -d app
+        run: unzip WheelsDrive_Final.zip -d app
 
-      - name: Move Files
+      - name: Show Extracted Files
+        run: ls -R app
+
+      - name: Move Project Files
         run: |
           shopt -s dotglob
-          mv app/* .
+          mv app/*/* .
 
       - name: Install Node.js
         uses: actions/setup-node@v4
