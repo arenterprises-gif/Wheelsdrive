@@ -432,14 +432,3 @@ export const VALIDATION_RULES = {
 // EXPORT ALL TYPES
 // ============================================================================
 
-export type {
-  User,
-  Car,
-  Valuation,
-  Inquiry,
-  Favorite,
-  AdminLog,
-  Analytics,
-  DashboardStats,
-};
-
