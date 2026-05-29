@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+/* ── CSS Variables ──────────────────────────────────── */
+:root {
+  --color-primary:        #0052CC;
+  --color-primary-hover:  #003D99;
+  --color-primary-light:  #0066FF;
+  --color-primary-bg:     #EBF2FF;
+  --color-primary-border: #B3D1FF;
+
+  --color-surface:        #FFFFFF;
+  --color-surface-2:      #F8FAFF;
+  --color-surface-3:      #F0F7FF;
+  --color-bg:             #EEF4FB;
+
+  --color-border:         #E5E7EB;
+  --color-border-light:   #F3F4F6;
+
+  --color-text-primary:   #1A202C;
+  --color-text-secondary: #4A5568;
+  --color-text-muted:     #94A3B8;
+
+  --color-success:        #10B981;
+  --color-success-bg:     #ECFDF5;
+  --color-warning:        #F59E0B;
+  --color-error:          #EF4444;
+  --color-error-bg:       #FEF2F2;
+  --color-purple:         #7C3AED;
+
+  --shadow-sm:            0 1px 4px rgba(0,82,204,0.08);
+  --shadow-md:            0 4px 16px rgba(0,82,204,0.12);
+  --shadow-lg:            0 8px 32px rgba(0,82,204,0.15);
+  --shadow-card-hover:    0 16px 40px rgba(0,82,204,0.18);
+  --shadow-primary:       0 8px 24px rgba(0,82,204,0.3);
+
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-2xl: 24px;
+}
+
+/* ── Reset & Base ────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: 'DM Sans', 'Nunito', system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Typography ──────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+/* ── Form Elements ───────────────────────────────────── */
+input, select, textarea {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.12);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+select { cursor: pointer; }
+textarea { resize: vertical; min-height: 80px; }
+
+/* ── Buttons ─────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, #0052CC, #0066FF);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(0,82,204,0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,82,204,0.4);
+  background: linear-gradient(135deg, #003D99, #0052CC);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  background: #FFFFFF;
+  color: var(--color-text-secondary);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Nunito', sans-serif;
+}
+.btn-ghost:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-surface-3);
+}
+
+/* ── Cards ───────────────────────────────────────────── */
+.card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.22s, transform 0.22s;
+}
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+}
+
+/* ── Animations ──────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.75; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.fade-up   { animation: fadeIn  0.5s ease both; }
+.slide-in  { animation: slideIn 0.5s ease both; }
+.float-anim { animation: float 4s ease-in-out infinite; }
+
+/* ── Gradient Text ──────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #0052CC, #0066FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Skeleton ────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #F0F7FF 25%, #E3F2FD 50%, #F0F7FF 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ── Scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #F0F7FF; }
+::-webkit-scrollbar-thumb { background: #B3D1FF; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #0052CC; }
+
+/* ── Utilities ───────────────────────────────────────── */
+.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
