@@ -18,7 +18,7 @@ jobs:
         run: rm -rf extracted
 
       - name: Extract ZIP
-        run: unzip WheelsDrive_Final.zip -d extracted
+        run: unzip wheelsdrive_upgraded.zip -d extracted
 
       - name: Show files
         run: ls -R extracted
