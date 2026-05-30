@@ -259,7 +259,13 @@ export default function AddEditCar() {
             <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
               Photos
             </h3>
-            <ImageUpload images={form.images || []} onChange={imgs => set('images', imgs)} />
+            <ImageUpload 
+  images={form.images || []} 
+  onChange={imgs => {
+    console.log('Images updated:', imgs)
+    set('images', imgs)
+  }} 
+/>
           </div>
 
           <div style={cardStyle}>
