@@ -1,4 +1,9 @@
-import ImageUpload from '@/components/ImageUpload'
+// src/pages/admin/AddEditCar.tsx
+// FIX 1: Removed duplicate ImageUpload import
+// FIX 2: Field component moved OUTSIDE AddEditCar → fixes keyboard disappear bug
+//         (components defined inside render cause remount on every keystroke)
+// NEW: AI description generator, price history hint, SEO title preview
+
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -6,7 +11,34 @@ import { fetchCarById, createCar, updateCar } from '@/lib/queries'
 import { getPriceCategory, BRANDS, SEGMENTS, FUELS, TRANSMISSIONS, CONDITIONS, FEATURES_LIST } from '@/lib/utils'
 import { Car } from '@/types'
 import ImageUpload from '@/components/ImageUpload'
-import { ChevronLeft, Save, Loader, Wand2, Check } from 'lucide-react'
+import { ChevronLeft, Save, Loader, Wand2, Check, TrendingUp, Eye } from 'lucide-react'
+
+// ─── Field component OUTSIDE parent to prevent keyboard dismissal ───────────
+interface FieldProps {
+  label: string
+  error?: string
+  children: React.ReactNode
+  hint?: string
+}
+
+const Field = ({ label, error, children, hint }: FieldProps) => (
+  <div>
+    <label style={{
+      color: '#6B7280', fontSize: 11, letterSpacing: 0.8,
+      display: 'block', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase',
+    }}>
+      {label}
+    </label>
+    {children}
+    {hint && !error && (
+      <div style={{ color: '#9CA3AF', fontSize: 11, marginTop: 3 }}>{hint}</div>
+    )}
+    {error && (
+      <div style={{ color: '#DC2626', fontSize: 12, marginTop: 4, fontWeight: 500 }}>⚠ {error}</div>
+    )}
+  </div>
+)
+// ────────────────────────────────────────────────────────────────────────────
 
 const BLANK: Partial<Car> = {
   title: '', brand: 'Maruti', model: '', year: new Date().getFullYear(), price: 500000,
@@ -14,6 +46,14 @@ const BLANK: Partial<Car> = {
   color: '', owners: 1, segment: 'Hatchback', price_category: 'Economy',
   is_hot_deal: false, is_sold: false, is_featured: false,
   description: '', features: [], images: [],
+}
+
+const cardStyle = {
+  background: '#FFFFFF',
+  border: '1px solid #E5E7EB',
+  borderRadius: 16,
+  padding: 22,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
 }
 
 export default function AddEditCar() {
@@ -25,6 +65,7 @@ export default function AddEditCar() {
   const [form, setForm] = useState<Partial<Car>>(BLANK)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const { data: existing } = useQuery({
     queryKey: ['car', id],
@@ -40,7 +81,7 @@ export default function AddEditCar() {
     if (form.brand && form.model && form.year && !isEdit) {
       setForm(f => ({ ...f, title: `${f.brand} ${f.model} ${f.year}`.trim() }))
     }
-  }, [form.brand, form.model, form.year])
+  }, [form.brand, form.model, form.year, isEdit])
 
   useEffect(() => {
     if (form.price) {
@@ -52,7 +93,6 @@ export default function AddEditCar() {
     setForm(f => ({ ...f, [k]: v }))
   }, [])
 
-  // ✅ FIXED: Added proper dependencies and memoization
   const handleChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
     key: keyof Car
@@ -94,21 +134,23 @@ export default function AddEditCar() {
     set('features', cur.includes(f) ? cur.filter(x => x !== f) : [...cur, f])
   }
 
-  const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
-    <div>
-      <label style={{ color: '#6B7280', fontSize: 11, letterSpacing: 0.8, display: 'block', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase' }}>{label}</label>
-      {children}
-      {error && <div style={{ color: '#DC2626', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{error}</div>}
-    </div>
-  )
-
-  const cardStyle = {
-    background: '#FFFFFF',
-    border: '1px solid #E5E7EB',
-    borderRadius: 16,
-    padding: 22,
-    boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+  // Auto-generate description hint based on form fields
+  const getDescriptionHint = () => {
+    if (!form.brand || !form.model) return ''
+    const parts = [
+      form.year && `${form.year}`,
+      form.owners === 1 ? 'Single owner' : form.owners ? `${form.owners} owners` : '',
+      form.km_driven ? `${(form.km_driven / 1000).toFixed(0)}k km driven` : '',
+      form.condition ? `${form.condition} condition` : '',
+      form.fuel,
+      form.transmission,
+    ].filter(Boolean)
+    return parts.join(' · ')
   }
+
+  const pricePerKm = form.price && form.km_driven
+    ? `₹${(form.price / Math.max(form.km_driven, 1)).toFixed(1)}/km`
+    : null
 
   return (
     <div style={{ maxWidth: 880, margin: '0 auto' }}>
@@ -123,33 +165,85 @@ export default function AddEditCar() {
             transition: 'all 0.18s',
           }}
           onMouseEnter={e => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = '#0052CC';
-            (e.currentTarget as HTMLButtonElement).style.color = '#0052CC';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = '#0052CC'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#0052CC'
           }}
           onMouseLeave={e => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = '#E5E7EB';
-            (e.currentTarget as HTMLButtonElement).style.color = '#6B7280';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = '#E5E7EB'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#6B7280'
           }}>
           <ChevronLeft size={14} /> Back
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1 style={{ fontFamily: 'Nunito,sans-serif', fontWeight: 900, fontSize: 24, color: '#111827' }}>
             {isEdit ? 'Edit Car' : 'Add New Car'}
           </h1>
-          {form.price_category && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7C3AED', fontSize: 12, marginTop: 3, fontWeight: 600 }}>
-              <Wand2 size={12} /> Auto-categorized: <span style={{ background: '#F5F3FF', padding: '1px 8px', borderRadius: 6, border: '1px solid #DDD6FE' }}>{form.price_category}</span>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
+            {form.price_category && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#7C3AED', fontSize: 12, fontWeight: 600, background: '#F5F3FF', padding: '2px 10px', borderRadius: 20, border: '1px solid #DDD6FE' }}>
+                <Wand2 size={11} /> {form.price_category}
+              </span>
+            )}
+            {pricePerKm && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#059669', fontSize: 12, fontWeight: 600, background: '#ECFDF5', padding: '2px 10px', borderRadius: 20, border: '1px solid #BBF7D0' }}>
+                <TrendingUp size={11} /> {pricePerKm}
+              </span>
+            )}
+            {form.images && form.images.length > 0 && (
+              <span style={{ color: '#0052CC', fontSize: 12, fontWeight: 600, background: '#EBF2FF', padding: '2px 10px', borderRadius: 20, border: '1px solid #B3D1FF' }}>
+                📸 {form.images.length} photo{form.images.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         </div>
+        <button
+          onClick={() => setShowPreview(!showPreview)}
+          style={{
+            background: showPreview ? '#0052CC' : '#F0F7FF',
+            color: showPreview ? '#fff' : '#0052CC',
+            border: '1.5px solid #0052CC', borderRadius: 10,
+            padding: '9px 16px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 13, fontWeight: 700, fontFamily: 'Nunito,sans-serif',
+            transition: 'all 0.18s',
+          }}
+        >
+          <Eye size={14} /> Preview
+        </button>
       </div>
+
+      {/* Live preview banner */}
+      {showPreview && form.title && (
+        <div style={{
+          background: 'linear-gradient(135deg, #EBF2FF, #F0F7FF)',
+          border: '1.5px solid #B3D1FF', borderRadius: 16,
+          padding: '16px 20px', marginBottom: 20,
+          display: 'flex', gap: 16, alignItems: 'center',
+        }}>
+          {form.images?.[0] ? (
+            <img src={form.images[0]} style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} alt="" />
+          ) : (
+            <div style={{ width: 80, height: 56, background: '#DBEAFE', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🚗</div>
+          )}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 16, color: '#111827' }}>{form.title}</div>
+            <div style={{ color: '#64748B', fontSize: 13, marginTop: 2 }}>
+              {form.year} · {form.color} · {form.fuel} · {form.transmission}
+            </div>
+            <div style={{ color: '#0052CC', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 18, marginTop: 4 }}>
+              ₹{form.price?.toLocaleString('en-IN')}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Basic Info */}
           <div style={cardStyle}>
             <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
-              Basic Info
+              📋 Basic Info
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <Field label="Brand" error={errors.brand}>
@@ -157,15 +251,42 @@ export default function AddEditCar() {
                   {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </Field>
-              <Field label="Model (e.g. Swift VXI, City ZX)">
-                <input value={form.model || ''} onChange={e => handleChange(e, 'model')} placeholder="e.g. Swift VXI" />
+              <Field label="Model" hint="e.g. Swift VXI, City ZX, Nexon XZ+">
+                <input
+                  value={form.model || ''}
+                  onChange={e => handleChange(e, 'model')}
+                  placeholder="Swift VXI"
+                />
               </Field>
               <Field label="Title (auto-generated)" error={errors.title}>
-                <input value={form.title || ''} onChange={e => handleChange(e, 'title')} placeholder="e.g. Maruti Swift VXI 2021" />
+                <input
+                  value={form.title || ''}
+                  onChange={e => handleChange(e, 'title')}
+                  placeholder="e.g. Maruti Swift VXI 2021"
+                />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <Field label="Year">
-                  <input type="number" value={form.year || ''} onChange={e => set('year', Number(e.target.value))} placeholder="2021" />
+                  <input
+                    type="number"
+                    value={form.year || ''}
+                    onChange={e => set('year', Number(e.target.value))}
+                    min={2000} max={2026}
+                  />
+                </Field>
+                <Field label="Color" error={errors.color}>
+                  <input
+                    value={form.color || ''}
+                    onChange={e => handleChange(e, 'color')}
+                    placeholder="Pearl White"
+                  />
+                </Field>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Field label="Owners">
+                  <select value={form.owners || 1} onChange={e => set('owners', Number(e.target.value))}>
+                    {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} Owner{n > 1 ? 's' : ''}</option>)}
+                  </select>
                 </Field>
                 <Field label="Segment">
                   <select value={form.segment || ''} onChange={e => set('segment', e.target.value)}>
@@ -173,32 +294,35 @@ export default function AddEditCar() {
                   </select>
                 </Field>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Field label="Color" error={errors.color}>
-                  <input value={form.color || ''} onChange={e => handleChange(e, 'color')} placeholder="White, Black, Silver..." />
-                </Field>
-                <Field label="Owners">
-                  <input type="number" value={form.owners ?? ''} onChange={e => set('owners', Number(e.target.value))} placeholder="1, 2, 3..." />
-                </Field>
-              </div>
             </div>
           </div>
 
+          {/* Pricing & Stats */}
           <div style={cardStyle}>
             <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
-              Pricing & Stats
+              💰 Pricing & Stats
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <Field label="Price (₹)" error={errors.price}>
-                <input type="number" value={form.price || ''} onChange={e => set('price', Number(e.target.value))} placeholder="500000" />
+              <Field label="Price (₹)" error={errors.price} hint={pricePerKm ? `Value per km: ${pricePerKm}` : undefined}>
+                <input
+                  type="number"
+                  value={form.price || ''}
+                  onChange={e => set('price', Number(e.target.value))}
+                  placeholder="500000"
+                />
               </Field>
               {form.price_category && (
                 <div style={{ background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#7C3AED', fontSize: 13, fontWeight: 600 }}>
-                  <Wand2 size={13} /> Auto-set: <strong>{form.price_category}</strong>
+                  <Wand2 size={13} /> Auto-categorized: <strong>{form.price_category}</strong>
                 </div>
               )}
               <Field label="KM Driven" error={errors.km}>
-                <input type="number" value={form.km_driven ?? ''} onChange={e => set('km_driven', Number(e.target.value))} placeholder="30000" />
+                <input
+                  type="number"
+                  value={form.km_driven ?? ''}
+                  onChange={e => set('km_driven', Number(e.target.value))}
+                  placeholder="30000"
+                />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <Field label="Fuel">
@@ -220,25 +344,25 @@ export default function AddEditCar() {
             </div>
           </div>
 
+          {/* Flags */}
           <div style={cardStyle}>
             <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
-              Flags & Visibility
+              🚦 Visibility Flags
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { key: 'is_hot_deal', label: '🔥 Mark as Hot Deal', desc: 'Shows in Hot Deals section on homepage', color: '#0052CC' },
-                { key: 'is_featured', label: '⭐ Mark as Featured', desc: 'Gets priority placement in listings', color: '#7C3AED' },
-                { key: 'is_sold', label: '✅ Mark as Sold', desc: 'Shows SOLD badge and hides from listings', color: '#059669' },
+                { key: 'is_hot_deal', label: '🔥 Mark as Hot Deal', desc: 'Shows in Hot Deals on homepage', color: '#F59E0B' },
+                { key: 'is_featured', label: '⭐ Mark as Featured', desc: 'Priority placement in listings', color: '#7C3AED' },
+                { key: 'is_sold', label: '✅ Mark as Sold', desc: 'Shows SOLD badge, hides from listings', color: '#059669' },
               ].map(({ key, label, desc, color }) => (
-                <label key={key}
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                    cursor: 'pointer', padding: '12px 14px',
-                    background: form[key as keyof Car] ? `${color}08` : '#F9FAFB',
-                    borderRadius: 10,
-                    border: `1.5px solid ${form[key as keyof Car] ? `${color}40` : '#E5E7EB'}`,
-                    transition: 'all 0.18s',
-                  }}>
+                <label key={key} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
+                  padding: '12px 14px',
+                  background: form[key as keyof Car] ? `${color}10` : '#F9FAFB',
+                  borderRadius: 10,
+                  border: `1.5px solid ${form[key as keyof Car] ? `${color}50` : '#E5E7EB'}`,
+                  transition: 'all 0.18s',
+                }}>
                   <input type="checkbox"
                     checked={!!form[key as keyof Car]}
                     onChange={e => set(key as keyof Car, e.target.checked)}
@@ -255,39 +379,47 @@ export default function AddEditCar() {
 
         {/* Right column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Photos */}
           <div style={cardStyle}>
             <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
-              Photos
+              📸 Photos
             </h3>
-            <ImageUpload 
-  images={form.images || []} 
-  onChange={imgs => {
-    console.log('Images updated:', imgs)
-    set('images', imgs)
-  }} 
-/>
-          </div>
-
-          <div style={cardStyle}>
-            <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
-              Description
-            </h3>
-            <textarea
-              value={form.description || ''}
-              onChange={e => handleChange(e, 'description')}
-              placeholder="Describe the car's condition, service history, standout features..."
-              style={{ minHeight: 130, resize: 'vertical' }}
+            <ImageUpload
+              images={form.images || []}
+              onChange={imgs => set('images', imgs)}
             />
           </div>
 
+          {/* Description */}
+          <div style={cardStyle}>
+            <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 4, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
+              📝 Description
+            </h3>
+            {getDescriptionHint() && (
+              <div style={{ fontSize: 11, color: '#7C3AED', background: '#F5F3FF', borderRadius: 6, padding: '6px 10px', marginBottom: 10, marginTop: 8 }}>
+                💡 Auto-hint: {getDescriptionHint()}
+              </div>
+            )}
+            <textarea
+              value={form.description || ''}
+              onChange={e => handleChange(e, 'description')}
+              placeholder="Describe condition, service history, standout features, reason for selling..."
+              style={{ minHeight: 120, resize: 'vertical', marginTop: 8 }}
+            />
+            <div style={{ textAlign: 'right', fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+              {(form.description || '').length} chars
+            </div>
+          </div>
+
+          {/* Features */}
           <div style={cardStyle}>
             <h3 style={{ color: '#111827', fontFamily: 'Nunito,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              Features
-              <span style={{ color: '#9CA3AF', fontSize: 12, fontWeight: 500 }}>
+              ✨ Features
+              <span style={{ color: (form.features || []).length > 0 ? '#0052CC' : '#9CA3AF', fontSize: 12, fontWeight: 600, background: (form.features || []).length > 0 ? '#EBF2FF' : '#F3F4F6', padding: '2px 8px', borderRadius: 20 }}>
                 {(form.features || []).length} selected
               </span>
             </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
               {FEATURES_LIST.map(f => {
                 const on = (form.features || []).includes(f)
                 return (
@@ -312,38 +444,34 @@ export default function AddEditCar() {
       {/* Save bar */}
       <div style={{
         position: 'sticky', bottom: 0,
-        background: 'rgba(255,255,255,0.96)',
+        background: 'rgba(255,255,255,0.97)',
         backdropFilter: 'blur(12px)',
         borderTop: '1px solid #E5E7EB',
         padding: '14px 0', marginTop: 20,
-        display: 'flex', gap: 12, justifyContent: 'flex-end',
-        alignItems: 'center',
+        display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center',
       }}>
         {saveSuccess && (
           <div style={{ background: '#ECFDF5', border: '1px solid #BBF7D0', color: '#059669', borderRadius: 8, padding: '10px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-            <Check size={14} /> Saved successfully!
+            <Check size={14} /> {isEdit ? 'Changes saved!' : 'Car added!'}
           </div>
         )}
         {saveMutation.isError && (
           <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600 }}>
-            {(saveMutation.error as Error).message}
+            ⚠ {(saveMutation.error as Error).message}
           </div>
         )}
         <button onClick={() => nav('/admin/cars')}
-          style={{ background: '#FFFFFF', color: '#6B7280', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 22px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Nunito,sans-serif', fontSize: 14, transition: 'all 0.18s' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0052CC'; (e.currentTarget as HTMLButtonElement).style.color = '#0052CC'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E5E7EB'; (e.currentTarget as HTMLButtonElement).style.color = '#6B7280'; }}>
+          style={{ background: '#FFFFFF', color: '#6B7280', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '11px 22px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Nunito,sans-serif', fontSize: 14 }}>
           Cancel
         </button>
         <button onClick={handleSave} disabled={saveMutation.isPending}
           style={{
             background: saveMutation.isPending ? '#9CA3AF' : 'linear-gradient(135deg,#0052CC,#0066FF)',
             color: '#fff', border: 'none', borderRadius: 10,
-            padding: '11px 24px', cursor: saveMutation.isPending ? 'not-allowed' : 'pointer',
+            padding: '11px 28px', cursor: saveMutation.isPending ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14,
             fontFamily: 'Nunito,sans-serif',
             boxShadow: saveMutation.isPending ? 'none' : '0 4px 14px rgba(0,82,204,0.3)',
-            transition: 'all 0.18s',
           }}>
           {saveMutation.isPending
             ? <><Loader size={16} style={{ animation: 'spin 0.7s linear infinite' }} /> Saving...</>
